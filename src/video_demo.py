@@ -16,8 +16,11 @@ from utils.preprocessor import preprocess_input
 detection_model_path = '../trained_models/detection_models/haarcascade_frontalface_default.xml'
 emotion_model_path = '../trained_models/emotion_models/fer2013_mini_XCEPTION.102-0.66.hdf5'
 gender_model_path = '../trained_models/gender_models/simple_CNN.81-0.96.hdf5'
+age_model_path = '../trained_models/age_models/agegender_age_miniXception.hdf5'
+
 emotion_labels = get_labels('fer2013')
 gender_labels = get_labels('imdb')
+age_labels = get_labels('age')
 font = cv2.FONT_HERSHEY_SIMPLEX
 
 # hyper-parameters for bounding boxes shape
@@ -29,10 +32,12 @@ emotion_offsets = (20, 40)
 face_detection = load_detection_model(detection_model_path)
 emotion_classifier = load_model(emotion_model_path, compile=False)
 gender_classifier = load_model(gender_model_path, compile=False)
+age_classifier = load_model(age_model_path, compile=False)
 
 # getting input model shapes for inference
 emotion_target_size = emotion_classifier.input_shape[1:3]
 gender_target_size = gender_classifier.input_shape[1:3]
+age_target_size = age_classifier.input_shape[1:3]
 
 # starting lists for calculating modes
 gender_window = []
@@ -58,6 +63,7 @@ while True:
         try:
             rgb_face = cv2.resize(rgb_face, (gender_target_size))
             gray_face = cv2.resize(gray_face, (emotion_target_size))
+            age_face = cv2.resize(rgb_face, (age_target_size))
         except:
             continue
         gray_face = preprocess_input(gray_face, False)
@@ -72,7 +78,16 @@ while True:
         gender_prediction = gender_classifier.predict(rgb_face)
         gender_label_arg = np.argmax(gender_prediction)
         gender_text = gender_labels[gender_label_arg]
-        gender_window.append(gender_text)
+        # gender_window.append(gender_text)
+
+
+        age_face = np.expand_dims(age_face, 0)
+        age_face = preprocess_input(age_face, False)
+        age_prediction = age_classifier.predict(age_face)
+        age_label_arg = np.argmax(age_prediction)+2
+        age_label_arg = age_label_arg if age_label_arg<len(age_labels) else len(age_labels)-1
+        age_text = age_labels[age_label_arg]
+        gender_window.append(gender_text+' '+age_text)
 
         if len(gender_window) > frame_window:
             emotion_window.pop(0)

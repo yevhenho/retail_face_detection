@@ -105,6 +105,15 @@ def get_labels(dataset_name):
         return {0:'woman', 1:'man'}
     elif dataset_name == 'KDEF':
         return {0:'AN', 1:'DI', 2:'AF', 3:'HA', 4:'SA', 5:'SU', 6:'NE'}
+    elif dataset_name == 'age':
+        return {0:'0-2',
+                1: '4-6',
+                2: '8-13',
+                3: '15-20',
+                4: '25-32',
+                5: '38-43',
+                6: '48-53',
+                7: '60+'}
     else:
         raise Exception('Invalid dataset name')
 
