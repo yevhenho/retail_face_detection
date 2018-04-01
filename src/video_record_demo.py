@@ -113,9 +113,9 @@ while (video_capture.isOpened()):
                   color, 0, -20, 1, 1)
         draw_text(face_coordinates, rgb_image, emotion_mode,
                   color, 0, -45, 1, 1)
-    frame = cv2.flip(rgb_image, 0)
-    out.write(frame)
     bgr_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2BGR)
+    out.write(bgr_image)
+
     cv2.imshow('window_frame', bgr_image)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
