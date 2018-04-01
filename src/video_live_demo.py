@@ -11,13 +11,14 @@ from utils.inference import draw_bounding_box
 from utils.inference import apply_offsets
 from utils.inference import load_detection_model
 from utils.preprocessor import preprocess_input
-
+import time
 # parameters for loading data and images
+from src.models.tty import TYY_1stream
 from src.models.wide_resnet import WideResNet
 
 detection_model_path = '../trained_models/detection_models/haarcascade_frontalface_default.xml'
 emotion_model_path = '../trained_models/emotion_models/fer2013_mini_XCEPTION.102-0.66.hdf5'
-age_gender_model_path = '../trained_models/age-gender-estimation.hdf5'
+age_gender_model_path = '../trained_models/weights.18-4.06.hdf5' #"https://github.com/yu4u/age-gender-estimation/releases/download/v0.5/weights.18-4.06.hdf5"
 race_model_path = '../trained_models/racenet_vgg16_25ep_seed343.h5'
 
 emotion_labels = get_labels('fer2013')
@@ -34,12 +35,14 @@ emotion_offsets = (20, 40)
 face_detection = load_detection_model(detection_model_path)
 emotion_classifier = load_model(emotion_model_path, compile=False)
 race_classifier = load_model(race_model_path, compile=False)
-age_gender_classifier = WideResNet(64, depth=16, k=8)()
-age_gender_classifier.load_weights(age_gender_model_path)
+# gender_age_classifier = WideResNet(64, depth=16, k=8)()
+# gender_age_classifier.load_weights(age_gender_model_path)
+gender_age_classifier = TYY_1stream(64)()
+gender_age_classifier.load_weights('../trained_models/TYY_1stream.h5')
 
 # getting input model shapes for inference
 emotion_target_size = emotion_classifier.input_shape[1:3]
-age_gender_target_size = age_gender_classifier.input_shape[1:3]
+age_gender_target_size = gender_age_classifier.input_shape[1:3]
 race_target_size = race_classifier.input_shape[1:3]
 
 # starting lists for calculating modes
@@ -75,15 +78,22 @@ while True:
         race_face = np.expand_dims(race_face, 0)
         race_face = np.expand_dims(race_face, -1)
 
-
+        start = time.time()
         emotion_label_arg = np.argmax(emotion_classifier.predict(gray_face))
+        print('emotion_classifier', time.time() - start)
+
         emotion_text = emotion_labels[emotion_label_arg]
         emotion_window.append(emotion_text)
 
         rgb_face = np.expand_dims(rgb_face, 0)
-        age_prediction = age_gender_classifier.predict(rgb_face)
-        age_text = int(age_prediction[1].dot(np.arange(0, 101).reshape(101, 1)).flatten())
-        gender_text = gender_labels[np.argmax(age_prediction[0][0])]
+        start = time.time()
+        gender_age_prediction = gender_age_classifier.predict(rgb_face)
+        print('gender_age_classifier', time.time() - start)
+
+        # age_text = int(gender_age_prediction[1].dot(np.arange(0, 101).reshape(101, 1)).flatten())
+        age_prediction = gender_age_prediction[1].dot(np.arange(0, 21).reshape(21, 1)).flatten()
+        age_text = int(age_prediction[0] * 4.76), int((age_prediction[0] + 1) * 4.76)
+        gender_text = gender_labels[np.argmax(gender_age_prediction[0][0])]
         race_text = race_labels[np.argmax(race_classifier.predict(race_face))]
         gender_window.append(gender_text+' '+str(age_text)+':'+race_text)
 
